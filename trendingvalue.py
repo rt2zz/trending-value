@@ -1,3 +1,4 @@
+#! /usr/bin/python
 import requests
 import csv
 import yql
@@ -6,11 +7,11 @@ from datetime import datetime
 from decimal import Decimal
 import time
 import re
-from django.db import connection
 import sys
-import traceback
 import os
 import multiprocessing
+from BeautifulSoup import BeautifulSoup
+import StringIO
 
 stock_keys = [
     "Ticker",
@@ -91,7 +92,7 @@ def import_finviz(processed_data):
             processed_data[stock["Ticker"]] = stock
         except Exception as e:
             print e
-            pdb.set_trace()
+            #pdb.set_trace()
     print "Finviz data imported"
 
 def import_evebitda(data):
@@ -127,7 +128,6 @@ def import_single_buyback_yield(stock):
             # Repair html
             html = html.replace('<div id="yucs-contextual_shortcuts"data-property="finance"data-languagetag="en-us"data-status="active"data-spaceid=""data-cobrand="standard">', '<div id="yucs-contextual_shortcuts" data-property="finance" data-languagetag="en-us" data-status="active" data-spaceid="" data-cobrand="standard">')
             html = re.sub(r'(?<!\=)"">', '">', html)
-            from BeautifulSoup import BeautifulSoup
             soup = BeautifulSoup(html)
             #with open("html.html", "w") as f:
             #    f.write(html)
@@ -283,7 +283,6 @@ def to_csv(data):
 
 def csv_to_dicts(scsv):
     scsv = scsv.encode('ascii', 'ignore')
-    import StringIO
     reader = csv.reader(StringIO.StringIO(scsv))
     header = []
     res = []
@@ -297,5 +296,5 @@ def csv_to_dicts(scsv):
             header = row
     return res
 
-def __main__():
+if __name__ == '__main__':
     generate_snapshot_to_csv()
