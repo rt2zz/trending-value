@@ -171,7 +171,7 @@ def import_buyback_yield(data, parallel=False):
         for stock in data:
             stock = data[stock]
             import_single_buyback_yield(stock)
-    print "Completed Buyback Yield" 
+    print "Completed Buyback Yield"
 
 def compute_rank(data, step=0):
     if step == 0:
@@ -276,7 +276,8 @@ def compute_overallrank(data):
     compute_somerank(data, "OVR", origkey="Rank", reverse=False)
 
 def to_csv(data):
-    with open("snapshot.csv", "wb") as f:
+    date = datetime.now()
+    with open("snapshot"+date+".csv", "wb") as f:
         w = csv.DictWriter(f, stock_keys)
         w.writer.writerow(stock_keys)
         w.writerows(data.values())
