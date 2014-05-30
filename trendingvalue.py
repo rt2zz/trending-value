@@ -12,6 +12,7 @@ import os
 import multiprocessing
 from BeautifulSoup import BeautifulSoup
 import StringIO
+import getopt
 
 stock_keys = [
     "Ticker",
@@ -38,10 +39,10 @@ stock_keys = [
     "OVRRank"
 ]
 
-def generate_snapshot_to_csv():
+def generate_snapshot_to_csv(output):
     data = {}
     generate_snapshot(data)
-    to_csv(data)
+    to_csv(data, output)
 
 
 def generate_snapshot(data):
@@ -275,10 +276,10 @@ def compute_overallrank(data):
     print "Computing Overall rank"
     compute_somerank(data, "OVR", origkey="Rank", reverse=False)
 
-def to_csv(data):
+def to_csv(data, output):
     date = datetime.now()
     datestr = date.strftime('%y-%m-%d--%H:%M')
-    with open("snapshot-"+datestr+".csv", "wb") as f:
+    with open(output+"/snapshot-"+datestr+".csv", "wb") as f:
         w = csv.DictWriter(f, stock_keys)
         w.writer.writerow(stock_keys)
         w.writerows(data.values())
@@ -296,7 +297,31 @@ def csv_to_dicts(scsv):
             res.append(data)
         else:
             header = row
-    return res[:50]
+    if(isDev()):
+	print('its DEV')
+	res = res[:10]
+    return res
+
+def isDev(isdev=None):
+    if isdev is not None:
+	isDev._isdev = isdev
+    return isDev._isdev
+isDev._isdev = 0
 
 if __name__ == '__main__':
-    generate_snapshot_to_csv()
+    print('getting ops')
+    try:
+        opts, args = getopt.getopt(sys.argv[1:], ':', ['dev', 'output='])
+    except getopt.GetoptError as err:
+        print(err)
+        sys.exit()
+    print(opts)
+    output = './'
+    for o,a in opts:
+        if o in ("--dev"):
+	    isDev(1)
+        elif o in ("--output"):
+            output = a
+        else:
+            print('unhandled op')
+    generate_snapshot_to_csv(output)
