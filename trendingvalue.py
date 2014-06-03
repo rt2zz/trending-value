@@ -278,7 +278,7 @@ def compute_overallrank(data):
 
 def to_csv(data, output):
     date = datetime.now()
-    datestr = date.strftime('%y-%m-%d--%H:%M')
+    datestr = time.mktime(date.timetuple()) + ':' + date.strftime('%y-%m-%d')
     with open(output+"/snapshot-"+datestr+".csv", "wb") as f:
         w = csv.DictWriter(f, stock_keys)
         w.writer.writerow(stock_keys)
