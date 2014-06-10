@@ -278,8 +278,8 @@ def compute_overallrank(data):
 
 def to_csv(data, output):
     date = datetime.now()
-    datestr = str(int(time.mktime(date.timetuple()))) + ':' + date.strftime('%y-%m-%d')
-    with open(output+"/snapshot:"+datestr+".csv", "wb") as f:
+    datestr = str(int(time.mktime(date.timetuple()))) + '--' + date.strftime('%y-%m-%d')
+    with open(output+"/snapshot--"+datestr+".csv", "wb") as f:
         w = csv.DictWriter(f, stock_keys)
         w.writer.writerow(stock_keys)
         w.writerows(data.values())
@@ -316,7 +316,7 @@ if __name__ == '__main__':
         print(err)
         sys.exit()
     print(opts)
-    output = './'
+    output = './snapshots'
     for o,a in opts:
         if o in ("--dev"):
 	    isDev(1)
