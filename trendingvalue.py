@@ -49,8 +49,9 @@ def generate_snapshot(data):
     print "Creating new snapshot"
     import_finviz(data)
     import_evebitda(data)
-    import_buyback_yield(data, True)
+    import_buyback_yield(data, False)
     compute_rank(data)
+    print data.values()
     return data
 
 def import_finviz(processed_data):
@@ -65,7 +66,6 @@ def import_finviz(processed_data):
             stock = {}
             if row["Ticker"]:
                 stock["Ticker"] = row["Ticker"]
-            print stock["Ticker"]
             if "Importing " + row["Company"]:
                 stock["Company"] = row["Company"]
             # Ignore companies with market cap below 200M
@@ -73,7 +73,6 @@ def import_finviz(processed_data):
                 continue
             market_cap = Decimal(row["Market Cap"])
             if market_cap < 200:
-                print "Market Cap too small: "+ row["Market Cap"]
                 continue
             stock["MarketCap"] = row["Market Cap"]
             if row["P/E"]:
@@ -97,24 +96,18 @@ def import_finviz(processed_data):
     print "Finviz data imported"
 
 def import_evebitda(data):
-    print "Importing EV/EBITDA"
     y = yql.Public()
     step=100
     tickers = data.keys()
     for i in range(0,len(tickers),step):
-        print "From " + tickers[i] + " to " + tickers[min(i+step,len(tickers))-1]
         nquery = 'select symbol, EnterpriseValueEBITDA.content from yahoo.finance.keystats where symbol in ({0})'.format('"'+('","'.join(tickers[i:i+step-1])+'"'))
         ebitdas = y.execute(nquery, env="http://www.datatables.org/alltables.env")
         if ebitdas.results:
             for row in ebitdas.results["stats"]:
-                print row["symbol"]
                 if "EnterpriseValueEBITDA" in row and row["EnterpriseValueEBITDA"] and row["EnterpriseValueEBITDA"] != "N/A":
-                    print "EVEBITDA: " + row["EnterpriseValueEBITDA"]
                     data[row["symbol"]]["EVEBITDA"] = row["EnterpriseValueEBITDA"]
         else:
             pass
-            print "No results"
-    print "EV/EBITDA imported"
 
 def import_single_buyback_yield(stock):
     done = False
@@ -157,7 +150,6 @@ def import_single_buyback_yield(stock):
             stock["BB"] = -sale
             print "BB: "+str(stock["BB"])
             done = True
-            #print "done!"
         except Exception as e:
             print e
             print "Trying again in 1 sec"
@@ -175,32 +167,13 @@ def import_buyback_yield(data, parallel=False):
     print "Completed Buyback Yield"
 
 def compute_rank(data, step=0):
-    if step == 0:
-        compute_perank(data)
-    if step <=1:
-        compute_psrank(data)
-    if step <=2:
-        compute_pbrank(data)
-    if step <=3:
-        compute_pfcfrank(data)
     if step <=4:
         compute_bby(data)
     if step <=5:
         compute_shy(data)
-    if step <=6:
-        compute_shyrank(data)
-    if step <=7:
-        compute_evebitdarank(data)
-    if step <=8:
-        set_mediums(data)
-    if step <=9:
-        compute_stockrank(data)
-    if step <=10:
-        compute_overallrank(data)
     print "Done"
 
 def compute_somerank(data, key, origkey=None, reverse=True, filterpositive=False):
-    print "Computing " + key + " rank"
     if not origkey:
         origkey = key
     i = 0
@@ -208,14 +181,11 @@ def compute_somerank(data, key, origkey=None, reverse=True, filterpositive=False
     stocks = sorted([stock for stock in data.values() if origkey in stock and (not filterpositive or stock[origkey] >= 0)], key=lambda k: k[origkey], reverse=reverse)
     amt = len(stocks)
     for stock in stocks:
-        print stock["Ticker"]
         if stock[origkey] != value:
             last_rank = i
             value = stock[origkey]
         stock[key+"Rank"] = Decimal(last_rank)/amt*100
-        print key+"Rank: " + str(stock[key+"Rank"])
         i +=1
-    print "Computed " + key + " Rank"
 
 def compute_perank(data):
     compute_somerank(data, "PE")
@@ -230,24 +200,18 @@ def compute_pfcfrank(data):
     compute_somerank(data, "PFCF", "PFreeCashFlow")
 
 def compute_bby(data):
-    print "Computing BBY"
+    print data.values()
     for stock in [stock for stock in data.values() if "BB" in stock and "MarketCap" in stock]:
-        print stock["Ticker"]
-        stock["BBY"] = -Decimal(stock["BB"])/(Decimal(stock["MarketCap"])*1000000)*100
-        print "BBY: " + str(stock["BBY"])
+        stock["BBY"] = Decimal(stock["BB"])/(Decimal(stock["MarketCap"])*1000000)*100
     print "Done computing BBY"
 
 def compute_shy(data):
-    print "Computing SHY"
     for stock in data.values():
-        print stock["Ticker"]
         stock["SHY"] = 0
         if "DividendYield" in stock:
             stock["SHY"] += Decimal(stock["DividendYield"])
         if "BBY" in stock:
             stock["SHY"] += stock["BBY"]
-        print "SHY: " + str(stock["SHY"])
-    print "Done computing SHY"
 
 def compute_shyrank(data):
     compute_somerank(data, "SHY", reverse=False)
@@ -256,24 +220,18 @@ def compute_evebitdarank(data):
     compute_somerank(data, "EVEBITDA", filterpositive=True)
 
 def set_mediums(data):
-    print "Setting Mediums"
     for stock in data.values():
         for key in ["PE", "PS", "PB", "PFCF", "EVEBITDA"]:
             if not key + "Rank" in stock:
                 stock[key + "Rank"] = 50
             if "EVEBITDA" in stock and stock["EVEBITDA"] < 0:
                 stock["EVEBITDARank"] = 50
-    print "Done setting Mediums"
 
 def compute_stockrank(data):
-    print "Computing stock rank"
     for stock in data.values():
-        print stock["Ticker"]
         stock["Rank"] = stock["PERank"]+stock["PSRank"]+stock["PBRank"]+stock["PFCFRank"]+stock["SHYRank"]+stock["EVEBITDARank"]
-        print "Rank: " + str(stock["Rank"])
 
 def compute_overallrank(data):
-    print "Computing Overall rank"
     compute_somerank(data, "OVR", origkey="Rank", reverse=False)
 
 def to_csv(data, output):
@@ -298,7 +256,6 @@ def csv_to_dicts(scsv):
         else:
             header = row
     if(isDev()):
-	print('its DEV')
 	res = res[:10]
     return res
 
@@ -309,7 +266,6 @@ def isDev(isdev=None):
 isDev._isdev = 0
 
 if __name__ == '__main__':
-    print('getting ops')
     try:
         opts, args = getopt.getopt(sys.argv[1:], ':', ['dev', 'output='])
     except getopt.GetoptError as err:
