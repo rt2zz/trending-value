@@ -51,7 +51,6 @@ def generate_snapshot(data):
     import_evebitda(data)
     import_buyback_yield(data, False)
     compute_rank(data)
-    print data.values()
     return data
 
 def import_finviz(processed_data):
@@ -113,10 +112,8 @@ def import_single_buyback_yield(stock):
     done = False
     while not done:
         try:
-            print stock["Ticker"]
             if not stock["MarketCap"]: break
             query = "http://finance.yahoo.com/q/cf?s="+stock["Ticker"]+"&ql=1"
-            print query
             r = requests.get(query, timeout=5)
             html = r.text
             # Repair html
@@ -148,7 +145,6 @@ def import_single_buyback_yield(stock):
                         if val == "-": continue
                         sale += int(val)*1000
             stock["BB"] = -sale
-            print "BB: "+str(stock["BB"])
             done = True
         except Exception as e:
             print e
@@ -200,7 +196,6 @@ def compute_pfcfrank(data):
     compute_somerank(data, "PFCF", "PFreeCashFlow")
 
 def compute_bby(data):
-    print data.values()
     for stock in [stock for stock in data.values() if "BB" in stock and "MarketCap" in stock]:
         stock["BBY"] = Decimal(stock["BB"])/(Decimal(stock["MarketCap"])*1000000)*100
     print "Done computing BBY"
